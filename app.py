@@ -16,7 +16,7 @@ def main():
     x_size = col1.number_input(label="X", min_value=1, max_value=MAX_SIZE, step=1, value=20)
     y_size = col2.number_input(label="Y", min_value=1, max_value=MAX_SIZE, step=1, value=20)
 
-    grid_excel_file = streamlit.file_uploader("Upload grid excel")
+    grid_excel_file = streamlit.file_uploader("Upload grid excel.")
     if grid_excel_file is not None:
         grid_data = pandas.read_excel(grid_excel_file, header=None)
         if MAX_SIZE in grid_data.shape:
