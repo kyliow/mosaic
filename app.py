@@ -1,4 +1,3 @@
-from matplotlib.pyplot import grid
 import numpy
 import pandas
 import plotly.graph_objects as go
@@ -7,14 +6,19 @@ import streamlit
 EXCEL_OPTIONS = [0, 1, 2, 3]
 MAX_SIZE = 50
 
+
 def main():
     streamlit.title("Mosaic App")
 
     streamlit.header("Grid Design")
     streamlit.text("Upload an excel sheet to start, or define the size of the grid.")
     col1, col2 = streamlit.columns(2)
-    x_size = col1.number_input(label="X", min_value=1, max_value=MAX_SIZE, step=1, value=20)
-    y_size = col2.number_input(label="Y", min_value=1, max_value=MAX_SIZE, step=1, value=20)
+    x_size = col1.number_input(
+        label="X", min_value=1, max_value=MAX_SIZE, step=1, value=20
+    )
+    y_size = col2.number_input(
+        label="Y", min_value=1, max_value=MAX_SIZE, step=1, value=20
+    )
 
     grid_excel_file = streamlit.file_uploader("Upload grid excel.")
     if grid_excel_file is not None:
