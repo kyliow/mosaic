@@ -21,7 +21,7 @@ def main():
         grid_data = pandas.read_excel(grid_excel_file, header=None)
         if MAX_SIZE in grid_data.shape:
             streamlit.warning(
-                f"One of the dimensions exceeds the allowed size of {MAX_SIZE}."
+                f"One of the dimensions exceeds the allowed size of {MAX_SIZE}.",
                 icon="⚠️",
             )
 
