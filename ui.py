@@ -17,9 +17,7 @@ class UserInterface:
         streamlit.text(
             "Input 0 for empty spaces, 1 for SM obstacles (e.g., a physical "
             + "pillar), 2 for TC obstacles (e.g. bins can be stacked but cars are not "
-            + "possible to pass through), or 3 for SM + TC obstacles. In reality, SM "
-            + "obstacles should also be TC obstacles, i.e. type 1 should be equal than "
-            + "type 3."
+            + "possible to pass through), or 3 for SM + TC obstacles."
         )
 
         col1, col2 = streamlit.columns(2)
@@ -39,14 +37,26 @@ class UserInterface:
                     icon="⚠️",
                 )
 
-            if not grid_data.isin(EXCEL_OPTIONS).all().all():
+            if (
+                grid_data.apply(lambda x: pandas.to_numeric(x, errors="coerce"))
+                .isna()
+                .any()
+                .any()
+            ) or (
+                not grid_data.isin(EXCEL_OPTIONS).all().all()
+                and not (grid_data >= 10).any().any()
+            ):
                 streamlit.warning(
-                    "Excel grid contains blank cells or numbers not in "
-                    + f"{EXCEL_OPTIONS}; changing these cells to 3 - SM & TC obstacles.",
+                    "Excel grid contains blank cells or invalid inputs; changing "
+                    + "these cells to 3 - SM & TC obstacles.",
                     icon="⚠️",
                 )
 
-                grid_data = grid_data.map(lambda x: x if x in EXCEL_OPTIONS else 3)
+                grid_data = grid_data.map(
+                    lambda x: (
+                        x if x in EXCEL_OPTIONS or (type(x) == int and x >= 10) else 3
+                    )
+                )
 
         else:
             grid_data = pandas.DataFrame(numpy.zeros((y_size, x_size)))
@@ -54,26 +64,69 @@ class UserInterface:
         grid_data = streamlit.data_editor(grid_data)
         grid_data.columns = range(grid_data.shape[1])
 
-        if not grid_data.isin(EXCEL_OPTIONS).all().all():
+        if (
+            not grid_data.isin(EXCEL_OPTIONS).all().all()
+            and not (grid_data >= 10).any().any()
+        ):
             streamlit.warning(
-                "Resultant grid contains numbers not in "
-                + f"{EXCEL_OPTIONS}; changing these cells to 3 - SM & TC obstacles.",
+                "Resultant grid contains invalid inputs; changing these cells to "
+                + "3 - SM & TC obstacles.",
                 icon="⚠️",
             )
 
-            grid_data = grid_data.map(lambda x: x if x in EXCEL_OPTIONS else 3)
+            grid_data = grid_data.map(
+                lambda x: x if x in EXCEL_OPTIONS or x >= 10 else 3
+            )
+
+        stations = grid_data.copy()[grid_data >= 10].stack().values
+
+        if any(i % 10 not in [0, 1, 2] for i in stations):
+            streamlit.error(
+                "Invalid values for stations detected; make sure the values end with 0, "
+                + "1 or 2.",
+                icon="❌️",
+            )
+
+        # Check for duplicated stations
+        unique_stations, counts = numpy.unique(
+            numpy.array(stations, dtype=int), return_counts=True
+        )
+        duplicates = unique_stations[counts > 1]
+        if len(duplicates) > 0:
+            streamlit.error(
+                f"Duplicated values for stations detected: {duplicates}", icon="❌️"
+            )
+
+        # Check for missing drop-pair stations if any
+        drop_station_ids = [(i - 1) / 10 for i in stations if i % 10 == 1]
+        pick_station_ids = [(i - 2) / 10 for i in stations if i % 10 == 2]
+
+        station_ids_with_missing_pair = list(
+            set(drop_station_ids).symmetric_difference(set(pick_station_ids))
+        )
+
+        if station_ids_with_missing_pair:
+            streamlit.error(
+                "Values for stations with missing drop/pick pair detected; make sure "
+                + "the values ended with 1 (drop stations) have to pair with the "
+                + "complementary values that end with 2 (pick stations).",
+                icon="❌️",
+            )
 
         discrete_colourscale = [
             [0.0, "#47b39d"],
-            [0.25, "#47b39d"],
-            [0.25, "#ffc153"],
-            [0.5, "#ffc153"],
-            [0.5, "#eb6156"],
-            [0.75, "#eb6156"],
-            [0.75, "#462446"],
-            [1.0, "#462446"],
+            [0.2, "#47b39d"],
+            [0.2, "#ffc153"],
+            [0.4, "#ffc153"],
+            [0.4, "#eb6156"],
+            [0.6, "#eb6156"],
+            [0.6, "#462446"],
+            [0.8, "#462446"],
+            [0.8, "#b05f6d"],
+            [1.0, "#b05f6d"],
         ]
 
+        grid_data[grid_data >= 10] = 4
         fig = go.Figure(
             data=go.Heatmap(
                 z=grid_data.values,
@@ -81,17 +134,18 @@ class UserInterface:
                 y=list(grid_data.index),
                 colorscale=discrete_colourscale,
                 colorbar=dict(
-                    tickvals=EXCEL_OPTIONS,
+                    tickvals=EXCEL_OPTIONS + [4],
                     ticktext=[
                         "0 - Empty",
                         "1 - SM Obstacles",
                         "2 - TC Obstacles",
                         "3 - SM & TC Obstacles",
+                        ">= 10 - Stations",
                     ],
                     title="Legend",
                 ),
                 zmin=-0.5,
-                zmax=3.5,
+                zmax=4.5,
             )
         )
 
@@ -134,8 +188,5 @@ class UserInterface:
 
         streamlit.plotly_chart(fig)
 
-
-    def show_simulation_input():
-        streamlit.header("Simulation Input")
-
-        
+    # def show_simulation_input():
+    #     streamlit.header("Simulation Input")
