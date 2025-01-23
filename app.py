@@ -8,7 +8,7 @@ def main():
 
     UserInterface.show_grid_designer()
 
-    # UserInterface.show_simulation_input()
+    UserInterface.show_simulation_input()
 
 
 if __name__ == "__main__":

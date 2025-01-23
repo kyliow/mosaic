@@ -10,11 +10,14 @@ MAX_SIZE = 50
 class UserInterface:
 
     def show_grid_designer():
-        streamlit.header("Grid Design")
-        streamlit.text(
+        """
+        The UI for grid designer.
+        """
+        streamlit.write("## Grid Design")
+        streamlit.write(
             "Upload an excel sheet to start, or define the size of the grid."
         )
-        streamlit.text(
+        streamlit.write(
             "Input 0 for empty spaces, 1 for SM obstacles (e.g., a physical "
             + "pillar), 2 for TC obstacles (e.g. bins can be stacked but cars are not "
             + "possible to pass through), or 3 for SM + TC obstacles."
@@ -30,7 +33,7 @@ class UserInterface:
 
         grid_excel_file = streamlit.file_uploader("Upload grid excel.")
         if grid_excel_file is not None:
-            grid_data = pandas.read_excel(grid_excel_file, header=None)
+            grid_data = pandas.read_excel(grid_excel_file, write=None)
             if MAX_SIZE in grid_data.shape:
                 streamlit.warning(
                     f"One of the dimensions exceeds the allowed size of {MAX_SIZE}.",
@@ -188,5 +191,38 @@ class UserInterface:
 
         streamlit.plotly_chart(fig)
 
-    # def show_simulation_input():
-    #     streamlit.header("Simulation Input")
+    def show_simulation_input():
+        """
+        The UI for simulation input.
+        """
+        streamlit.write("## Simulation Input")
+
+        streamlit.write("#### Peak throughput")
+        col1, col2 = streamlit.columns(2)
+        pick_throughput = col1.number_input(
+            "Pick throughput (bins/h)", min_value=1, value=1000
+        )
+        goods_in_throughput = col2.number_input(
+            "Goods-in throughput (bins/h)", min_value=1, value=100
+        )
+
+        streamlit.write("#### Operator handling times")
+        col1, col2 = streamlit.columns(2)
+        pick_time = col1.number_input("Pick handling time (s)", min_value=1, value=20)
+        goods_in_time = col2.number_input(
+            "Goods-in handling time (s)", min_value=1, value=20
+        )
+
+        streamlit.write("### Other simulation input")
+        bin_dist_str = streamlit.select_slider(
+            "Bin distribution",
+            options=[f"{10*i} : {100-(10*i)}" for i in range(1, 10)],
+            value="80 : 20",
+        )
+        col1, col2 = streamlit.columns(2)
+        z_size = col1.number_input(
+            "Height of grid (bins)", min_value=1, max_value=30, value=15
+        )
+        number_of_skycars = col2.number_input(
+            "Number of skycars", min_value=1, max_value=100, value=10
+        )
