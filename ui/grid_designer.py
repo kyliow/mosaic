@@ -1,22 +1,19 @@
-import math
-
-import numpy
-import pandas
-import plotly.graph_objects as go
+from matplotlib.pyplot import grid
 import streamlit
-
-from abc_distribution import ABCDistribution
+import pandas
+import numpy
+import plotly.graph_objects as go
 
 EXCEL_OPTIONS = [0, 1, 2, 3]
 MAX_SIZE = 50
 
 
-class UserInterface:
+class GridDesignerUI:
+    """
+    The UI for grid designer.
+    """
 
-    def show_grid_designer():
-        """
-        The UI for grid designer.
-        """
+    def __init__(self):
         streamlit.write("## Grid Design")
         streamlit.write(
             "Upload an excel sheet to start, or define the size of the grid."
@@ -87,6 +84,7 @@ class UserInterface:
 
         stations = grid_data.copy()[grid_data >= 10].stack().values
 
+        # Check for invalid input of stations
         if any(i % 10 not in [0, 1, 2] for i in stations):
             streamlit.error(
                 "Invalid values for stations detected; make sure the values end with 0, "
@@ -99,6 +97,12 @@ class UserInterface:
         unique_stations, counts = numpy.unique(
             numpy.array(stations, dtype=int), return_counts=True
         )
+        if unique_stations.size == 0:
+            streamlit.warning(
+                "Grid must have at least one station.",
+                icon="⚠️",
+            )
+
         duplicates = unique_stations[counts > 1]
         if len(duplicates) > 0:
             streamlit.error(
@@ -136,12 +140,13 @@ class UserInterface:
             [1.0, "#b05f6d"],
         ]
 
-        grid_data[grid_data >= 10] = 4
+        grid_data_display = grid_data.copy()
+        grid_data_display[grid_data_display >= 10] = 4
         fig = go.Figure(
             data=go.Heatmap(
-                z=grid_data.values,
-                x=list(grid_data.columns),
-                y=list(grid_data.index),
+                z=grid_data_display.values,
+                x=list(grid_data_display.columns),
+                y=list(grid_data_display.index),
                 colorscale=discrete_colourscale,
                 colorbar=dict(
                     tickvals=EXCEL_OPTIONS + [4],
@@ -159,21 +164,21 @@ class UserInterface:
             )
         )
 
-        for col in range(grid_data.shape[1] + 1):
+        for col in range(grid_data_display.shape[1] + 1):
             fig.add_shape(
                 type="line",
                 x0=col - 0.5,
                 x1=col - 0.5,
                 y0=-0.5,
-                y1=grid_data.shape[0] - 0.5,
+                y1=grid_data_display.shape[0] - 0.5,
                 line=dict(color="gray", width=1),
             )
 
-        for row in range(grid_data.shape[0] + 1):
+        for row in range(grid_data_display.shape[0] + 1):
             fig.add_shape(
                 type="line",
                 x0=-0.5,
-                x1=grid_data.shape[1] - 0.5,
+                x1=grid_data_display.shape[1] - 0.5,
                 y0=row - 0.5,
                 y1=row - 0.5,
                 line=dict(color="gray", width=1),
@@ -183,13 +188,13 @@ class UserInterface:
             title="Grid Layout",
             xaxis=dict(
                 title="X",
-                tickvals=list(grid_data.columns),
+                tickvals=list(grid_data_display.columns),
                 scaleanchor="y",
                 showgrid=False,
             ),
             yaxis=dict(
                 title="Y",
-                tickvals=list(grid_data.index),
+                tickvals=list(grid_data_display.index),
                 autorange="reversed",
                 scaleanchor="x",
                 showgrid=False,
@@ -198,99 +203,7 @@ class UserInterface:
 
         streamlit.plotly_chart(fig)
 
-        streamlit.divider()
-
-    def show_simulation_input():
-        """
-        The UI for simulation input.
-        """
-        streamlit.write("## Simulation Input")
-
-        streamlit.write("#### Peak throughput")
-        col1, col2 = streamlit.columns(2)
-        pick_throughput = col1.number_input(
-            "Pick throughput (bins/h)", min_value=1, value=1000
-        )
-        goods_in_throughput = col2.number_input(
-            "Goods-in throughput (bins/h)", min_value=1, value=100
-        )
-
-        streamlit.write("#### Operator handling times")
-        col1, col2 = streamlit.columns(2)
-        pick_time = col1.number_input("Pick handling time (s)", min_value=1, value=20)
-        goods_in_time = col2.number_input(
-            "Goods-in handling time (s)", min_value=1, value=20
-        )
-
-        streamlit.write("### Simulation input")
-        col1, col2 = streamlit.columns(2)
-        z_size = col1.number_input(
-            "Height of grid (bins)", min_value=3, max_value=30, value=15
-        )
-        number_of_skycars = col2.number_input(
-            "Number of skycars", min_value=1, max_value=100, value=10
-        )
-
-        streamlit.write("### ABC categories")
-        streamlit.write(
-            """
-            The default values assume that 
-            - the top (A) 20% of the bins receive 70% of the jobs,
-            - the middle (B) 30% of the bins receive 20% of the jobs, and
-            - the bottom (C) 50% of the bins receive 10% of the jobs.
-            """
-        )
-        a_default_bin_depth = max(1, math.ceil(z_size * 0.2))
-        b_default_bin_depth = max(1, math.ceil(z_size * 0.3))
-        c_default_bin_depth = z_size - a_default_bin_depth - b_default_bin_depth
-        abc_df = pandas.DataFrame(
-            {
-                "category": ["Top (A)", "Middle (B)", "Bottom (C)"],
-                "number_of_bin_depth": [
-                    a_default_bin_depth,
-                    b_default_bin_depth,
-                    c_default_bin_depth,
-                ],
-                "percentage_of_jobs": [70, 20, 10],
-            }
-        )
-
-        abc_df = streamlit.data_editor(
-            abc_df,
-            column_config={
-                "category": "Category",
-                "number_of_bin_depth": streamlit.column_config.NumberColumn(
-                    "Number of bins",
-                    min_value=1,
-                    max_value=z_size,
-                    step=1,
-                ),
-                "percentage_of_jobs": streamlit.column_config.NumberColumn(
-                    "Percentage of jobs",
-                    min_value=1,
-                    max_value=100,
-                    step=1,
-                ),
-            },
-            disabled=["category"],
-            hide_index=True,
-        )
-        abc_df["category"] = ["A", "B", "C"]
-
-        if abc_df["number_of_bin_depth"].sum() != z_size:
-            streamlit.error(
-                f"Sum of number of bins is not equal to {z_size}; please amend the "
-                + "values in the ABC input table."
-            )
-            return
-
-        if abc_df["percentage_of_jobs"].sum() != 100:
-            streamlit.error(
-                f"Sum of percentage of jobs is not equal to 100; please amend the "
-                + "values in the ABC input table."
-            )
-            return
-        
-        abc = ABCDistribution(abc_df=abc_df, z_size=z_size)
+        # Assign value for later use
+        self.grid_data = grid_data
 
         streamlit.divider()
