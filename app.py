@@ -1,7 +1,12 @@
 import streamlit
 
 from ui import GridDesignerUI, SimulationInputUI
-from input_creation import InputSkyCarSetup, InputZonesAndStations, InputSMObstacles, InputTCObstacles
+from input_creation import (
+    InputSkyCarSetup,
+    InputZonesAndStations,
+    InputSMObstacles,
+    InputTCObstacles,
+)
 
 from parameters import Parameters
 
@@ -28,16 +33,16 @@ def main():
     with streamlit.expander("reset-3.json: SM Obstacles"):
         streamlit.json(input_sm_obstacles.to_json())
 
-    input_tc_obstacles = InputTCObstacles(grid_data=grid_designer_ui.grid_data)
-    with streamlit.expander("reset-6.json: TC Obstacles"):
-        streamlit.json(input_tc_obstacles.to_json())
-
     input_skycar_setup = InputSkyCarSetup(
         number_of_skycars=simulation_input_ui.number_of_skycars,
         model=Parameters.ZONE_NAME,
     )
     with streamlit.expander("reset-5.json: Skycar Setup"):
         streamlit.json(input_skycar_setup.to_json())
+
+    input_tc_obstacles = InputTCObstacles(grid_data=grid_designer_ui.grid_data)
+    with streamlit.expander("reset-6.json: TC Obstacles"):
+        streamlit.json(input_tc_obstacles.to_json())
 
 
 if __name__ == "__main__":
