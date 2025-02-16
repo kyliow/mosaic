@@ -14,6 +14,9 @@ class GridDesignerUI:
     """
 
     def __init__(self):
+        pass
+
+    def show(self) -> bool:
         streamlit.write("## Grid Design")
         streamlit.write(
             "Upload an excel sheet to start, or define the size of the grid."
@@ -34,7 +37,7 @@ class GridDesignerUI:
 
         grid_excel_file = streamlit.file_uploader("Upload grid excel.")
         if grid_excel_file is not None:
-            grid_data = pandas.read_excel(grid_excel_file, write=None)
+            grid_data: pandas.DataFrame = pandas.read_excel(grid_excel_file, write=None)
             if MAX_SIZE in grid_data.shape:
                 streamlit.warning(
                     f"One of the dimensions exceeds the allowed size of {MAX_SIZE}.",
@@ -65,7 +68,7 @@ class GridDesignerUI:
         else:
             grid_data = pandas.DataFrame(numpy.zeros((y_size, x_size)))
 
-        grid_data = streamlit.data_editor(grid_data)
+        grid_data: pandas.DataFrame = streamlit.data_editor(grid_data)
         grid_data.columns = range(grid_data.shape[1])
 
         if (
@@ -91,9 +94,9 @@ class GridDesignerUI:
                 + "1 or 2.",
                 icon="❌️",
             )
-            return
+            return False
 
-        # Check for duplicated stations
+        # Check whether there is any station in the grid
         unique_stations, counts = numpy.unique(
             numpy.array(stations, dtype=int), return_counts=True
         )
@@ -103,21 +106,33 @@ class GridDesignerUI:
                 icon="⚠️",
             )
 
+        # Check for duplicated stations
         duplicates = unique_stations[counts > 1]
         if len(duplicates) > 0:
             streamlit.error(
                 f"Duplicated values for stations detected: {duplicates}", icon="❌️"
             )
-            return
+            return False
 
-        # Check for missing drop-pair stations if any
+        # Check for invalid station indices
         drop_station_ids = [(i - 1) / 10 for i in stations if i % 10 == 1]
         pick_station_ids = [(i - 2) / 10 for i in stations if i % 10 == 2]
+        mixed_station_ids = [i / 10 for i in stations if i % 10 == 0]
 
+        if any(
+            item in drop_station_ids or item in pick_station_ids
+            for item in mixed_station_ids
+        ):
+            streamlit.error(
+                "Station values that ended with 0 cannot have the same values ended in 1 or 2.",
+                icon="❌️",
+            )
+            return False
+
+        # Check for missing drop-pair stations if any
         station_ids_with_missing_pair = list(
             set(drop_station_ids).symmetric_difference(set(pick_station_ids))
         )
-
         if station_ids_with_missing_pair:
             streamlit.error(
                 "Values for stations with missing drop/pick pair detected; make sure "
@@ -125,7 +140,7 @@ class GridDesignerUI:
                 + "complementary values that end with 2 (pick stations).",
                 icon="❌️",
             )
-            return
+            return False
 
         discrete_colourscale = [
             [0.0, "#47b39d"],
@@ -207,3 +222,5 @@ class GridDesignerUI:
         self.grid_data = grid_data
 
         streamlit.divider()
+
+        return True

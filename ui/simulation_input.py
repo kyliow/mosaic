@@ -11,7 +11,11 @@ class SimulationInputUI:
     """
     The UI for simulation input.
     """
+
     def __init__(self):
+        pass
+
+    def show(self):
         streamlit.write("## Simulation Input")
 
         streamlit.write("#### Peak throughput")
@@ -29,6 +33,11 @@ class SimulationInputUI:
         goods_in_time = col2.number_input(
             "Goods-in handling time (s)", min_value=1, value=20
         )
+
+        streamlit.write("#### Station capacity")
+        col1, col2 = streamlit.columns(2)
+        pick_capacity = col1.number_input("Pick capacity (bins)", min_value=1, value=1)
+        drop_capacity = col2.number_input("Drop capacity (bins)", min_value=1, value=2)
 
         streamlit.write("### Simulation input")
         col1, col2 = streamlit.columns(2)
@@ -90,14 +99,14 @@ class SimulationInputUI:
                 f"Sum of number of bins is not equal to {z_size}; please amend the "
                 + "values in the ABC input table."
             )
-            return
+            return False
 
         if abc_df["percentage_of_jobs"].sum() != 100:
             streamlit.error(
                 f"Sum of percentage of jobs is not equal to 100; please amend the "
                 + "values in the ABC input table."
             )
-            return
+            return False
 
         # TODO: Fix ABC to suit job creation
         abc = ABCDistribution(abc_df=abc_df, z_size=z_size)
@@ -105,9 +114,13 @@ class SimulationInputUI:
         # Assign values for later use
         self.pick_throughput = pick_throughput
         self.goods_in_throughput = goods_in_throughput
-        self.pick_time = pick_time 
+        self.pick_time = pick_time
         self.goods_in_time = goods_in_time
-        self.z_size = z_size 
+        self.z_size = z_size
         self.number_of_skycars = number_of_skycars
+        self.pick_capacity = pick_capacity
+        self.drop_capacity = drop_capacity
 
         streamlit.divider()
+
+        return True
