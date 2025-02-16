@@ -148,8 +148,12 @@ class InputZone:
 
 class InputVoid:
     def __init__(self, from_: Coordinates, to: Coordinates):
-        self.from_ = from_
         self.to = to
+
+        # Since from is a reserved keyword in Python, we need to use a different way to 
+        # set the attribute
+        setattr(self, "from", from_)
+
 
 
 class InputStation:
