@@ -3,10 +3,12 @@ import json
 import numpy
 import pandas
 
-
+from parameters import Parameters
 class InputSMObstacles:
     def __init__(self, grid_data: pandas.DataFrame):
         self._create_stacks(grid_data=grid_data)
+        self.zoneGroup = Parameters.ZONE_NAME
+        self.isSkycarAccessible = False
 
     def _create_stacks(self, grid_data: pandas.DataFrame):
         void_mask = grid_data.isin([1, 3]).to_numpy()

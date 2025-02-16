@@ -7,6 +7,7 @@ import numpy
 import pandas
 
 from ui.simulation_input import SimulationInputUI
+from parameters import Parameters
 
 
 class InputZonesAndStations:
@@ -133,7 +134,7 @@ class InputZone:
         max_y: int,
         max_z: int,
         voids: List[InputVoid],
-        name: str = "C",
+        name: str = Parameters.ZONE_NAME,
     ):
         self.name = name
         self.fromX = 0
@@ -165,7 +166,7 @@ class InputDropOrPick:
         coordinates: Coordinates,
         capacity: int = 1,
         hardware_index: int = 1,
-        zone_group: str = "C",
+        zone_group: str = Parameters.ZONE_NAME,
     ):
         self.capacity = capacity
         self.hardwareIndex = hardware_index
