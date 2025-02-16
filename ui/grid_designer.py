@@ -1,18 +1,22 @@
-import numpy
-import pandas
-import plotly.graph_objects as go
+from matplotlib.pyplot import grid
 import streamlit
+import pandas
+import numpy
+import plotly.graph_objects as go
 
 EXCEL_OPTIONS = [0, 1, 2, 3]
 MAX_SIZE = 50
 
 
-class UserInterface:
+class GridDesignerUI:
+    """
+    The UI for grid designer.
+    """
 
-    def show_grid_designer():
-        """
-        The UI for grid designer.
-        """
+    def __init__(self):
+        pass
+
+    def show(self) -> bool:
         streamlit.write("## Grid Design")
         streamlit.write(
             "Upload an excel sheet to start, or define the size of the grid."
@@ -33,7 +37,7 @@ class UserInterface:
 
         grid_excel_file = streamlit.file_uploader("Upload grid excel.")
         if grid_excel_file is not None:
-            grid_data = pandas.read_excel(grid_excel_file, write=None)
+            grid_data: pandas.DataFrame = pandas.read_excel(grid_excel_file, write=None)
             if MAX_SIZE in grid_data.shape:
                 streamlit.warning(
                     f"One of the dimensions exceeds the allowed size of {MAX_SIZE}.",
@@ -64,7 +68,7 @@ class UserInterface:
         else:
             grid_data = pandas.DataFrame(numpy.zeros((y_size, x_size)))
 
-        grid_data = streamlit.data_editor(grid_data)
+        grid_data: pandas.DataFrame = streamlit.data_editor(grid_data)
         grid_data.columns = range(grid_data.shape[1])
 
         if (
@@ -83,31 +87,52 @@ class UserInterface:
 
         stations = grid_data.copy()[grid_data >= 10].stack().values
 
+        # Check for invalid input of stations
         if any(i % 10 not in [0, 1, 2] for i in stations):
             streamlit.error(
                 "Invalid values for stations detected; make sure the values end with 0, "
                 + "1 or 2.",
                 icon="❌️",
             )
+            return False
 
-        # Check for duplicated stations
+        # Check whether there is any station in the grid
         unique_stations, counts = numpy.unique(
             numpy.array(stations, dtype=int), return_counts=True
         )
+        if unique_stations.size == 0:
+            streamlit.warning(
+                "Grid must have at least one station.",
+                icon="⚠️",
+            )
+
+        # Check for duplicated stations
         duplicates = unique_stations[counts > 1]
         if len(duplicates) > 0:
             streamlit.error(
                 f"Duplicated values for stations detected: {duplicates}", icon="❌️"
             )
+            return False
 
-        # Check for missing drop-pair stations if any
+        # Check for invalid station indices
         drop_station_ids = [(i - 1) / 10 for i in stations if i % 10 == 1]
         pick_station_ids = [(i - 2) / 10 for i in stations if i % 10 == 2]
+        mixed_station_ids = [i / 10 for i in stations if i % 10 == 0]
 
+        if any(
+            item in drop_station_ids or item in pick_station_ids
+            for item in mixed_station_ids
+        ):
+            streamlit.error(
+                "Station values that ended with 0 cannot have the same values ended in 1 or 2.",
+                icon="❌️",
+            )
+            return False
+
+        # Check for missing drop-pair stations if any
         station_ids_with_missing_pair = list(
             set(drop_station_ids).symmetric_difference(set(pick_station_ids))
         )
-
         if station_ids_with_missing_pair:
             streamlit.error(
                 "Values for stations with missing drop/pick pair detected; make sure "
@@ -115,6 +140,7 @@ class UserInterface:
                 + "complementary values that end with 2 (pick stations).",
                 icon="❌️",
             )
+            return False
 
         discrete_colourscale = [
             [0.0, "#47b39d"],
@@ -129,12 +155,13 @@ class UserInterface:
             [1.0, "#b05f6d"],
         ]
 
-        grid_data[grid_data >= 10] = 4
+        grid_data_display = grid_data.copy()
+        grid_data_display[grid_data_display >= 10] = 4
         fig = go.Figure(
             data=go.Heatmap(
-                z=grid_data.values,
-                x=list(grid_data.columns),
-                y=list(grid_data.index),
+                z=grid_data_display.values,
+                x=list(grid_data_display.columns),
+                y=list(grid_data_display.index),
                 colorscale=discrete_colourscale,
                 colorbar=dict(
                     tickvals=EXCEL_OPTIONS + [4],
@@ -152,21 +179,21 @@ class UserInterface:
             )
         )
 
-        for col in range(grid_data.shape[1] + 1):
+        for col in range(grid_data_display.shape[1] + 1):
             fig.add_shape(
                 type="line",
                 x0=col - 0.5,
                 x1=col - 0.5,
                 y0=-0.5,
-                y1=grid_data.shape[0] - 0.5,
+                y1=grid_data_display.shape[0] - 0.5,
                 line=dict(color="gray", width=1),
             )
 
-        for row in range(grid_data.shape[0] + 1):
+        for row in range(grid_data_display.shape[0] + 1):
             fig.add_shape(
                 type="line",
                 x0=-0.5,
-                x1=grid_data.shape[1] - 0.5,
+                x1=grid_data_display.shape[1] - 0.5,
                 y0=row - 0.5,
                 y1=row - 0.5,
                 line=dict(color="gray", width=1),
@@ -176,13 +203,13 @@ class UserInterface:
             title="Grid Layout",
             xaxis=dict(
                 title="X",
-                tickvals=list(grid_data.columns),
+                tickvals=list(grid_data_display.columns),
                 scaleanchor="y",
                 showgrid=False,
             ),
             yaxis=dict(
                 title="Y",
-                tickvals=list(grid_data.index),
+                tickvals=list(grid_data_display.index),
                 autorange="reversed",
                 scaleanchor="x",
                 showgrid=False,
@@ -191,38 +218,9 @@ class UserInterface:
 
         streamlit.plotly_chart(fig)
 
-    def show_simulation_input():
-        """
-        The UI for simulation input.
-        """
-        streamlit.write("## Simulation Input")
+        # Assign value for later use
+        self.grid_data = grid_data
 
-        streamlit.write("#### Peak throughput")
-        col1, col2 = streamlit.columns(2)
-        pick_throughput = col1.number_input(
-            "Pick throughput (bins/h)", min_value=1, value=1000
-        )
-        goods_in_throughput = col2.number_input(
-            "Goods-in throughput (bins/h)", min_value=1, value=100
-        )
+        streamlit.divider()
 
-        streamlit.write("#### Operator handling times")
-        col1, col2 = streamlit.columns(2)
-        pick_time = col1.number_input("Pick handling time (s)", min_value=1, value=20)
-        goods_in_time = col2.number_input(
-            "Goods-in handling time (s)", min_value=1, value=20
-        )
-
-        streamlit.write("### Other simulation input")
-        bin_dist_str = streamlit.select_slider(
-            "Bin distribution",
-            options=[f"{10*i} : {100-(10*i)}" for i in range(1, 10)],
-            value="80 : 20",
-        )
-        col1, col2 = streamlit.columns(2)
-        z_size = col1.number_input(
-            "Height of grid (bins)", min_value=1, max_value=30, value=15
-        )
-        number_of_skycars = col2.number_input(
-            "Number of skycars", min_value=1, max_value=100, value=10
-        )
+        return True
