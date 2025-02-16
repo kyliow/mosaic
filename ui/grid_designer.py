@@ -1,8 +1,7 @@
-from matplotlib.pyplot import grid
-import streamlit
-import pandas
 import numpy
+import pandas
 import plotly.graph_objects as go
+import streamlit
 
 EXCEL_OPTIONS = [0, 1, 2, 3]
 MAX_SIZE = 50
