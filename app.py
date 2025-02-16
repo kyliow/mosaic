@@ -19,12 +19,14 @@ def main():
     input_zones_and_stations = InputZonesAndStations(
         grid_data=grid_designer_ui.grid_data, simulation_input=simulation_input_ui
     )
+    with streamlit.expander("reset-2.json: Zones and Stations"):
+        streamlit.json(input_zones_and_stations.to_json())
 
-    # input_skycar_setup = InputSkyCarSetup(
-    #     number_of_skycars=simulation_input_ui.number_of_skycars, model="C"
-    # )
-
-    streamlit.json(input_zones_and_stations.to_json())
+    input_skycar_setup = InputSkyCarSetup(
+        number_of_skycars=simulation_input_ui.number_of_skycars, model="C"
+    )
+    with streamlit.expander("reset-5.json: Skycar Setup"):
+        streamlit.json(input_skycar_setup.to_json())
 
 
 if __name__ == "__main__":
