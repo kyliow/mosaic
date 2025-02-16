@@ -114,7 +114,7 @@ class InputZonesAndStations:
 
         self.stations = stations
 
-    def to_json(self, save: bool = False, filename: str = "reset-5.json") -> str:
+    def to_json(self, save: bool = False, filename: str = "reset-2.json") -> str:
         json_str = json.dumps(
             self, default=lambda o: o.__dict__, sort_keys=True, indent=4
         )
